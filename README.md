@@ -7,7 +7,8 @@
 Every voice heard, every case tracked, every record protected.
 
 ![Status](https://img.shields.io/badge/status-in%20development-0071e3)
-![Day](https://img.shields.io/badge/build-day%201%20of%204-1d1d1f)
+![Day](https://img.shields.io/badge/build-day%202%20of%204-1d1d1f)
+![Tests](https://img.shields.io/badge/tests-24%20passing-34c759)
 ![Stack](https://img.shields.io/badge/stack-Flask%20%C2%B7%20SQLAlchemy-34c759)
 ![Security](https://img.shields.io/badge/focus-OWASP%20Top%2010-ff9f0a)
 
@@ -51,19 +52,74 @@ pip install pymupdf
 python scripts/build_mockups.py
 ```
 
-## Planned technology
+## Getting started
+
+Requires Python 3.12 or newer.
+
+```bash
+python -m venv .venv
+```
+
+```bash
+.venv\Scripts\activate
+```
+
+```bash
+pip install -r requirements.txt
+```
+
+Copy `.env.example` to `.env` and set `SECRET_KEY` (the file explains how to generate one). Then create the database and start the app:
+
+```bash
+flask --app wsgi init-db
+```
+
+```bash
+flask --app wsgi run
+```
+
+Open <http://localhost:5000>. Students create their own accounts on the sign-up page. Staff and administrator accounts are created from the command line, which asks for the password without showing it:
+
+```bash
+flask --app wsgi create-user --role admin --email admin@example.com --name "Grace Mulenga"
+```
+
+Run the tests with:
+
+```bash
+python -m pytest
+```
+
+## What works today
+
+![Sign-in page running in the browser](docs/screens/app-sign-in.png)
+
+| Area | Implemented |
+| --- | --- |
+| Registration | Student sign-up with server-side validation; the role is fixed to Student and never read from the form |
+| Passwords | Argon2id hashing; 12-character minimum, common and personal passwords rejected; automatic re-hash when parameters change |
+| Sign-in | By e-mail or student ID; one generic failure message; constant work for unknown accounts; lockout for 15 minutes after 5 failures; 10 attempts per minute per IP |
+| Sessions | `HttpOnly` + `SameSite=Lax` cookie (`Secure` and `__Host-` prefix in production); fresh session on sign-in; 30-minute idle and 8-hour absolute timeout; sign-out and password change revoke sessions on the server |
+| Access control | `login_required` on every private page; `roles_required` decorator returns 403 and logs the attempt; all queries scoped to the signed-in user |
+| CSRF | Token on every form, including sign-out (POST only) |
+| Security headers | Content-Security-Policy with no inline script or style, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `no-store` caching, HSTS in production |
+| Audit log | Sign-ins, failures, lockouts, registrations, password changes and access denials, with user, IP and outcome; entries cannot be updated or deleted through the ORM; passwords are never logged |
+| Configuration | Secrets only from environment variables; the app refuses to start without `SECRET_KEY`; separate development, production and testing settings |
+| Interface | Sign-in, sign-up, role-aware home, security page, admin user list and error pages, responsive from phone to desktop |
+
+## Technology
 
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Framework | Flask (Python 3.12) | Small, explicit, easy to audit |
 | Database | SQLite in development, PostgreSQL-ready, through SQLAlchemy | Parameterised queries by default |
-| Authentication | Flask-Login + Argon2id | Modern password hashing, server-side sessions |
+| Authentication | Flask-Login + Argon2id | Modern password hashing, signed session cookies that can be revoked on the server |
 | Forms | Flask-WTF | CSRF protection and server-side validation |
 | Templates | Jinja2 | Output auto-escaping against XSS |
-| Hardening | Flask-Limiter, Flask-Talisman | Rate limiting, security headers, CSP |
+| Hardening | Flask-Limiter, hand-written security headers | Rate limiting, CSP and browser protections with no extra dependency |
 | Testing | pytest, Bandit, Semgrep, OWASP ZAP | Unit, static, dynamic and manual attack tests |
 
-## Planned security controls
+## Security controls
 
 | Requirement | How Voicebox will address it |
 | --- | --- |
@@ -80,8 +136,8 @@ python scripts/build_mockups.py
 | Day | Date | Focus | Status |
 | --- | --- | --- | --- |
 | 1 | 17 Nov 2026 | Repository, README, design language and UI mockups | ✅ Done |
-| 2 | 18 Nov 2026 | Project skeleton, database models, registration and login, sessions, base layout | ⏳ Next |
-| 3 | 19 Nov 2026 | Complaint workflow for all three roles, file uploads, access control, audit log | ◻️ Planned |
+| 2 | 18 Nov 2026 | Project skeleton, database models, registration and login, sessions, base layout | ✅ Done |
+| 3 | 19 Nov 2026 | Complaint workflow for all three roles, file uploads, access control, audit log viewer | ⏳ Next |
 | 4 | 20 Nov 2026 | Threat model (DFD + STRIDE), Bandit/Semgrep, OWASP ZAP, manual attack tests, reflection | ◻️ Planned |
 
 ## Build log
@@ -94,10 +150,34 @@ python scripts/build_mockups.py
 - Designed 8 screens across all roles plus mobile, and exported them as a PDF deck.
 - Chose the technology stack and mapped each security requirement to a planned control.
 
+### Day 2 — 18 November 2026
+
+- Set up the Flask project: application factory, configuration classes, pinned dependencies and `.env.example`.
+- Created the database models: users, complaints, messages, attachments and the audit log.
+- Built registration, sign-in, sign-out and password change, with Argon2id hashing, account lockout and rate limiting.
+- Built session management: secure cookie flags, idle and absolute timeouts, and server-side session revocation.
+- Added the `roles_required` access-control decorator, CSRF protection and security headers with a strict Content-Security-Policy.
+- Added the audit log helper and made log entries append-only.
+- Turned the mockups into the real base layout, stylesheet and pages, with no inline styles or scripts.
+- Wrote 24 automated tests covering authentication, sessions, access control, CSRF, output escaping and the audit log. All pass.
+
 ## Repository layout
 
 ```
 Voicebox/
+├── app/
+│   ├── __init__.py               Application factory, headers, error pages, CLI
+│   ├── models.py                 Database models
+│   ├── security.py               Hashing, password policy, audit log, access control
+│   ├── auth/                     Registration, sign-in, sign-out, password change
+│   ├── main/                     Role-aware home and admin pages
+│   ├── templates/                Jinja2 templates
+│   └── static/                   Stylesheet and icon
+├── tests/                        Automated security tests
+├── config.py                     Development, production and testing settings
+├── wsgi.py                       Entry point
+├── requirements.txt
+├── .env.example
 ├── docs/
 │   ├── Voicebox-Mockups.pdf      Mockup deck
 │   ├── mockups/                  HTML source of the mockups
