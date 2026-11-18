@@ -1,0 +1,30 @@
+{% macro icon(name, cls="") %}<svg class="i {{ cls }}" aria-hidden="true"><use href="#{{ name }}"/></svg>{% endmacro %}
+
+{% macro field(f, hint=None) %}
+<div class="field">
+  <label class="f" for="{{ f.id }}">{{ f.label.text }}</label>
+  {{ f(class_="in" ~ (" invalid" if f.errors else ""), **kwargs) }}
+  {% if f.errors %}
+    {% for e in f.errors %}<p class="err" role="alert">{{ e }}</p>{% endfor %}
+  {% elif hint %}
+    <p class="hint">{{ hint }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro flashes() %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">
+    {{ icon('alert' if category == 'error' else 'check') }}<span>{{ message }}</span>
+  </div>
+  {% endfor %}
+{% endwith %}
+{% endmacro %}
+
+{% macro brand() %}
+<a class="logo" href="{{ url_for('main.index') }}">
+  <span class="mark"><svg aria-hidden="true"><use href="#logo"/></svg></span>
+  <span>Voicebox<small>Cavendish University</small></span>
+</a>
+{% endmacro %}

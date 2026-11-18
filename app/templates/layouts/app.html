@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, brand, flashes %}
+{% set role_home = {Role.STUDENT: "My complaints", Role.STAFF: "My cases", Role.ADMIN: "All complaints"} %}
+{% macro nav(endpoint, label, icon_name) %}
+<a class="nav{% if request.endpoint == endpoint %} on{% endif %}" href="{{ url_for(endpoint) }}"
+   {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>{{ icon(icon_name) }}{{ label }}</a>
+{% endmacro %}
+{% block body_class %}shell{% endblock %}
+{% block body %}
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+  <aside class="side">
+    {{ brand() }}
+    <nav aria-label="Main">
+      {{ nav("main.home", role_home[current_user.role], "inbox") }}
+      {% if current_user.role == Role.ADMIN %}
+      <h2 class="nav-head">Manage</h2>
+      {{ nav("main.admin_users", "Users & roles", "users") }}
+      {% endif %}
+      <h2 class="nav-head">Account</h2>
+      {{ nav("auth.account_security", "Security", "lock") }}
+    </nav>
+    <div class="me">
+      <span class="av av-{{ current_user.role }}" aria-hidden="true">{{ current_user.initials }}</span>
+      <div class="me-text">
+        <b>{{ current_user.full_name }}</b>
+        <span>{{ current_user.role_label }}{% if current_user.student_id %} · {{ current_user.student_id }}{% endif %}</span>
+      </div>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="icon-btn" type="submit" title="Sign out" aria-label="Sign out">{{ icon('out') }}</button>
+      </form>
+    </div>
+  </aside>
+  <main class="main" id="main">
+    {{ flashes() }}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

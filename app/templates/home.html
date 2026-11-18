@@ -1,0 +1,25 @@
+{% extends "layouts/app.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<header class="top">
+  <div>
+    <h1>{{ title }}</h1>
+    <p class="muted">Welcome, {{ current_user.first_name }}.</p>
+  </div>
+</header>
+<section class="stats" aria-label="Summary">
+  {% for label, value, hint, colour in stats %}
+  <div class="card stat">
+    <span class="stat-label"><i class="dot dot-{{ colour }}"></i>{{ label }}</span>
+    <b>{{ value }}</b>
+    <small>{{ hint }}</small>
+  </div>
+  {% endfor %}
+</section>
+<section class="card empty">
+  <span class="empty-icon">{{ icon('inbox') }}</span>
+  <h2>{{ empty[0] }}</h2>
+  <p class="muted">{{ empty[1] }}</p>
+</section>
+{% endblock %}

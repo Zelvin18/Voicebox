@@ -1,0 +1,21 @@
+{% extends "layouts/auth.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Create an account{% endblock %}
+{% block card %}
+<header>
+  <h2 class="card-title">Create an account</h2>
+  <p class="muted">For Cavendish University students.</p>
+</header>
+<form method="post" novalidate class="stack">
+  {{ form.hidden_tag() }}
+  {{ field(form.full_name, autocomplete="name", autofocus=true) }}
+  <div class="row-2">
+    {{ field(form.student_id, placeholder="CU-2024-01234", autocapitalize="characters", spellcheck="false") }}
+    {{ field(form.email, type="email", autocomplete="email", autocapitalize="none", spellcheck="false") }}
+  </div>
+  {{ field(form.password, hint="At least 12 characters. A short sentence works well.", autocomplete="new-password") }}
+  {{ field(form.confirm, autocomplete="new-password") }}
+  <button class="btn btn-lg" type="submit">Create account</button>
+</form>
+<p class="card-foot">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+{% endblock %}

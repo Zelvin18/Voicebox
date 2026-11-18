@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% from "_macros.html" import field, icon %}
+{% block title %}Security{% endblock %}
+{% block content %}
+<header class="top">
+  <div>
+    <h1>Security</h1>
+    <p class="muted">Manage your password and see how your account is protected.</p>
+  </div>
+</header>
+<div class="split">
+  <section class="card pad">
+    <h2 class="sec">Change password</h2>
+    <form method="post" novalidate class="stack narrow">
+      {{ form.hidden_tag() }}
+      {{ field(form.current_password, autocomplete="current-password") }}
+      {{ field(form.password, hint="At least 12 characters. A short sentence works well.", autocomplete="new-password") }}
+      {{ field(form.confirm, autocomplete="new-password") }}
+      <div><button class="btn" type="submit">Change password</button></div>
+    </form>
+  </section>
+  <aside class="card pad">
+    <h2 class="sec">Your account</h2>
+    <dl class="kv">
+      <dt>Email</dt><dd>{{ current_user.email }}</dd>
+      <dt>Role</dt><dd>{{ current_user.role_label }}</dd>
+      <dt>Last sign-in</dt><dd>{{ current_user.last_login_at.strftime("%d %b %Y, %H:%M") if current_user.last_login_at else "—" }} UTC</dd>
+      <dt>Password set</dt><dd>{{ current_user.password_changed_at.strftime("%d %b %Y") }}</dd>
+    </dl>
+    <ul class="points">
+      <li>{{ icon('shield') }}You are signed out after 30 minutes of inactivity.</li>
+      <li>{{ icon('lock') }}Changing your password signs out your other devices.</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

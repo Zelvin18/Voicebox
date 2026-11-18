@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import brand %}
+{% block title %}{{ title }}{% endblock %}
+{% block body_class %}auth{% endblock %}
+{% block body %}
+<main class="error-page">
+  {{ brand() }}
+  <div class="card error-card">
+    <span class="error-code">{{ code }}</span>
+    <h1 class="card-title">{{ title }}</h1>
+    <p class="muted">{{ message }}</p>
+    <a class="btn" href="{{ url_for('main.index') }}">Back to Voicebox</a>
+  </div>
+</main>
+{% endblock %}

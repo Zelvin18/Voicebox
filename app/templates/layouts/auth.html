@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, brand, flashes %}
+{% block body_class %}auth{% endblock %}
+{% block body %}
+<main class="auth-grid">
+  <section class="auth-hero">
+    {{ brand() }}
+    <div>
+      <h1 class="hero-title">Your voice.<br>Heard, tracked,<br>resolved.</h1>
+      <p class="hero-sub">Raise a concern with the university and follow it from submission to resolution — privately and securely.</p>
+    </div>
+    <ul class="hero-points">
+      <li>{{ icon('lock') }}Encrypted in transit</li>
+      <li>{{ icon('shield') }}Only you see your complaints</li>
+    </ul>
+  </section>
+  <section class="auth-panel">
+    <div class="card auth-card">
+      <div class="auth-brand">{{ brand() }}</div>
+      {{ flashes() }}
+      {% block card %}{% endblock %}
+    </div>
+  </section>
+</main>
+{% endblock %}
