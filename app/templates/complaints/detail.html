@@ -1,0 +1,123 @@
+{% extends "layouts/app.html" %}
+{% from "_macros.html" import icon, status_pill %}
+{% block title %}{{ complaint.reference }}{% endblock %}
+{% block content %}
+{% set role = current_user.role %}
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+<header class="detail-head">
+  <a class="crumb" href="{{ url_for('main.home') }}">{{ icon('back') }}{{ "My complaints" if role == Role.STUDENT else "My cases" if role == Role.STAFF else "All complaints" }}</a>
+  <div class="detail-title">
+    <h1>{{ complaint.subject }}</h1>
+    {{ status_pill(complaint, role) }}
+  </div>
+  <p class="muted">{{ complaint.reference }} · {{ complaint.category }}{% if role != Role.STUDENT %} · from {{ complaint.student.full_name }} ({{ complaint.student.student_id }}){% endif %} · submitted {{ complaint.created_at|dt }}</p>
+</header>
+
+<div class="split split-detail">
+  <section class="card pad thread">
+    <article class="msg">
+      <span class="av av-student" aria-hidden="true">{{ complaint.student.initials }}</span>
+      <div class="msg-body">
+        <h2>{{ "You" if complaint.student_id == current_user.id else complaint.student.full_name }} <time>{{ complaint.created_at|dt }}</time></h2>
+        <div class="bub">{{ complaint.body }}</div>
+      </div>
+    </article>
+    {% for m in messages %}
+    <article class="msg{{ ' msg-staff' if m.author.role != Role.STUDENT }}{{ ' msg-internal' if m.internal }}">
+      <span class="av av-{{ m.author.role }}" aria-hidden="true">{{ m.author.initials }}</span>
+      <div class="msg-body">
+        <h2>{{ "You" if m.author_id == current_user.id else m.author.full_name }}
+          {% if m.author.role != Role.STUDENT %}<span class="pill pill-gray">{{ m.author.role_label }}</span>{% endif %}
+          {% if m.internal %}<span class="pill pill-awaiting_student">Internal note</span>{% endif %}
+          <time>{{ m.created_at|dt }}</time></h2>
+        <div class="bub">{{ m.body }}</div>
+      </div>
+    </article>
+    {% endfor %}
+
+    {% if can.reply %}
+    <form method="post" action="{{ url_for('complaints.reply', reference=complaint.reference) }}" class="composer">
+      {{ reply_form.hidden_tag() }}
+      <label class="sr" for="{{ reply_form.body.id }}">Write a reply</label>
+      {{ reply_form.body(class_="in", rows=3, maxlength=2000, placeholder="Write a reply…", required=true) }}
+      <div class="composer-foot">
+        {% if can.internal_note %}
+        <label class="check">{{ reply_form.internal() }} Internal note — not shown to the student</label>
+        {% endif %}
+        <button class="btn" type="submit">Send</button>
+      </div>
+    </form>
+    {% elif not complaint.is_open %}
+    <p class="closed">{{ icon('check') }}This complaint is {{ complaint.status_label|lower }}. The conversation is closed.</p>
+    {% endif %}
+  </section>
+
+  <aside class="stack">
+    {% if can.status %}
+    <section class="card pad">
+      <h2 class="sec">Status</h2>
+      <form method="post" action="{{ url_for('complaints.set_status', reference=complaint.reference) }}" class="seg seg-buttons">
+        {{ csrf() }}
+        {% for value in (Status.IN_PROGRESS, Status.AWAITING_STUDENT, Status.RESOLVED) %}
+        <button type="submit" name="status" value="{{ value }}" class="{{ 'on' if complaint.status == value }}">{{ Status.LABELS[value] }}</button>
+        {% endfor %}
+      </form>
+    </section>
+    {% endif %}
+
+    {% if can.assign %}
+    <section class="card pad">
+      <h2 class="sec">{{ "Reassign" if complaint.assigned_to else "Assign this complaint" }}</h2>
+      {% if assign_form.staff_id.choices %}
+      <form method="post" action="{{ url_for('complaints.assign', reference=complaint.reference) }}" class="stack stack-sm">
+        {{ assign_form.hidden_tag() }}
+        <label class="sr" for="{{ assign_form.staff_id.id }}">Member of staff</label>
+        {{ assign_form.staff_id(class_="in") }}
+        <button class="btn" type="submit">{{ "Reassign" if complaint.assigned_to else "Assign" }}</button>
+      </form>
+      {% else %}
+      <p class="muted">There are no staff accounts yet. Create one with <code>flask create-user</code>.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="card pad">
+      <h2 class="sec">Details</h2>
+      <dl class="kv">
+        <dt>Reference</dt><dd class="ref">{{ complaint.reference }}</dd>
+        <dt>Category</dt><dd>{{ complaint.category }}</dd>
+        <dt>Submitted</dt><dd>{{ complaint.created_at|day }}</dd>
+        <dt>Handled by</dt>
+        <dd>{% if complaint.assigned_to %}{{ complaint.assigned_to.full_name }}{% else %}<span class="faint">Not yet assigned</span>{% endif %}</dd>
+      </dl>
+      {% for a in complaint.attachments %}
+      <a class="file" href="{{ url_for('complaints.download', attachment_id=a.id) }}">
+        <span class="file-ic">{{ a.stored_name.rsplit(".", 1)[-1]|upper }}</span>
+        <span class="file-name">{{ a.original_name }}<small>{{ (a.size / 1024)|round|int }} KB</small></span>
+        {{ icon('down') }}
+      </a>
+      {% endfor %}
+    </section>
+
+    <section class="card pad">
+      <h2 class="sec">Timeline</h2>
+      <ol class="tl">
+        {% for label, when in timeline %}
+        <li><b>{{ label }}</b><small>{{ when|dt }}</small></li>
+        {% endfor %}
+        {% if complaint.is_open %}<li class="todo"><b>Resolved</b><small>Not yet</small></li>{% endif %}
+      </ol>
+      {% if can.withdraw %}
+      <form method="post" action="{{ url_for('complaints.withdraw', reference=complaint.reference) }}" class="side-action">
+        {{ csrf() }}<button class="btn btn-quiet btn-block" type="submit">Withdraw complaint</button>
+      </form>
+      {% endif %}
+      {% if can.reopen %}
+      <form method="post" action="{{ url_for('complaints.reopen', reference=complaint.reference) }}" class="side-action">
+        {{ csrf() }}<button class="btn btn-quiet btn-block" type="submit">Not fixed? Reopen</button>
+      </form>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

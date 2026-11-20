@@ -13,9 +13,13 @@
     {{ brand() }}
     <nav aria-label="Main">
       {{ nav("main.home", role_home[current_user.role], "inbox") }}
+      {% if current_user.role == Role.STUDENT %}
+      {{ nav("complaints.new", "New complaint", "plus") }}
+      {% endif %}
       {% if current_user.role == Role.ADMIN %}
       <h2 class="nav-head">Manage</h2>
       {{ nav("main.admin_users", "Users & roles", "users") }}
+      {{ nav("main.admin_audit", "Audit log", "shield") }}
       {% endif %}
       <h2 class="nav-head">Account</h2>
       {{ nav("auth.account_security", "Security", "lock") }}

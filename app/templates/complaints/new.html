@@ -1,0 +1,56 @@
+{% extends "layouts/app.html" %}
+{% from "_macros.html" import field, icon %}
+{% block title %}New complaint{% endblock %}
+{% block content %}
+<header class="top">
+  <div>
+    <h1>New complaint</h1>
+    <p class="muted">Tell us what happened. The more detail, the faster we can help.</p>
+  </div>
+</header>
+<div class="split">
+  <form method="post" enctype="multipart/form-data" novalidate class="card pad stack">
+    {{ form.hidden_tag() }}
+    <fieldset class="field">
+      <legend class="f">Category</legend>
+      <div class="seg seg-radio">
+        {% for option in form.category %}
+        {{ option() }}<label for="{{ option.id }}">{{ option.label.text }}</label>
+        {% endfor %}
+      </div>
+      {% if form.category.errors %}<p class="err" role="alert">{{ form.category.errors[0] }}</p>{% endif %}
+    </fieldset>
+    {{ field(form.subject, hint="Up to 120 characters.", maxlength=120) }}
+    {{ field(form.body, hint="Include dates, places and any module codes. Up to 4,000 characters.", rows=7, maxlength=4000) }}
+    <div class="field">
+      <label class="f" for="{{ form.evidence.id }}">Evidence <span class="opt">— optional · PDF, PNG or JPG · up to 5 MB</span></label>
+      {{ form.evidence(class_="file-in", accept=".pdf,.png,.jpg,.jpeg") }}
+      {% for e in form.evidence.errors %}<p class="err" role="alert">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="form-foot">
+      <span class="note">{{ icon('lock') }}Visible only to you and the staff handling your case</span>
+      <a class="btn btn-quiet" href="{{ url_for('main.home') }}">Cancel</a>
+      <button class="btn" type="submit">Submit complaint</button>
+    </div>
+  </form>
+  <aside class="stack">
+    <section class="card pad">
+      <h2 class="sec">What happens next</h2>
+      <ol class="tl">
+        <li><b>You submit</b><small>You get a reference number straight away</small></li>
+        <li class="todo"><b>An administrator assigns it</b><small>Usually within one working day</small></li>
+        <li class="todo"><b>Staff respond</b><small>You can reply and add information</small></li>
+        <li class="todo"><b>Resolved</b><small>You can reopen it if the problem is not fixed</small></li>
+      </ol>
+    </section>
+    <section class="card pad tip">
+      <h2 class="sec">A good complaint includes</h2>
+      <ul>
+        <li>Dates, times and places</li>
+        <li>Module codes or reference numbers</li>
+        <li>The outcome you are hoping for</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

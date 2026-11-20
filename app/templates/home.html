@@ -1,12 +1,16 @@
 {% extends "layouts/app.html" %}
-{% from "_macros.html" import icon %}
+{% from "_macros.html" import icon, status_pill %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
+{% set role = current_user.role %}
 <header class="top">
   <div>
     <h1>{{ title }}</h1>
-    <p class="muted">Welcome, {{ current_user.first_name }}.</p>
+    <p class="muted">{{ subtitle }}</p>
   </div>
+  {% if role == Role.STUDENT %}
+  <a class="btn top-action" href="{{ url_for('complaints.new') }}">{{ icon('plus') }}New complaint</a>
+  {% endif %}
 </header>
 <section class="stats" aria-label="Summary">
   {% for label, value, hint, colour in stats %}
@@ -17,9 +21,50 @@
   </div>
   {% endfor %}
 </section>
+<nav class="seg" aria-label="Filter">
+  {% for key, label in filters.items() %}
+  <a href="{{ url_for('main.home', show=key) }}" class="{{ 'on' if key == active }}"
+     {% if key == active %}aria-current="true"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+{% if complaints %}
+<section class="card table-wrap">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Reference</th><th>Subject</th><th>Category</th><th>Status</th>
+        {% if role != Role.STUDENT %}<th>Student</th>{% endif %}
+        {% if role != Role.STAFF %}<th>Handled by</th>{% endif %}
+        <th>Updated</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in complaints %}
+      <tr>
+        <td class="ref">{{ c.reference }}</td>
+        <td class="subject"><a href="{{ url_for('complaints.detail', reference=c.reference) }}">{{ c.subject }}</a></td>
+        <td class="muted">{{ c.category }}</td>
+        <td>{{ status_pill(c, role) }}</td>
+        {% if role != Role.STUDENT %}<td class="muted">{{ c.student.full_name }}</td>{% endif %}
+        {% if role != Role.STAFF %}
+        <td>
+          {% if c.assigned_to %}<span class="cell-user"><span class="av av-sm av-staff" aria-hidden="true">{{ c.assigned_to.initials }}</span>{{ c.assigned_to.full_name }}</span>
+          {% elif c.is_open and role == Role.ADMIN %}<a class="btn btn-sm" href="{{ url_for('complaints.detail', reference=c.reference) }}">Assign…</a>
+          {% else %}<span class="faint">Not yet assigned</span>{% endif %}
+        </td>
+        {% endif %}
+        <td class="muted">{{ c.updated_at|dt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
 <section class="card empty">
   <span class="empty-icon">{{ icon('inbox') }}</span>
   <h2>{{ empty[0] }}</h2>
   <p class="muted">{{ empty[1] }}</p>
+  {% if role == Role.STUDENT %}<a class="btn" href="{{ url_for('complaints.new') }}">{{ icon('plus') }}New complaint</a>{% endif %}
 </section>
+{% endif %}
 {% endblock %}

@@ -28,3 +28,13 @@
   <span>Voicebox<small>Cavendish University</small></span>
 </a>
 {% endmacro %}
+
+{% macro status_pill(c, role) %}
+{%- if c.status == Status.AWAITING_STUDENT and role == Role.STUDENT -%}
+<span class="pill pill-awaiting_student"><i class="dot"></i>Awaiting you</span>
+{%- elif c.status == Status.SUBMITTED and not c.assigned_to_id and role == Role.ADMIN -%}
+<span class="pill pill-red"><i class="dot"></i>Unassigned</span>
+{%- else -%}
+<span class="pill pill-{{ c.status }}"><i class="dot"></i>{{ c.status_label }}</span>
+{%- endif -%}
+{% endmacro %}
