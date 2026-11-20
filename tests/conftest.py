@@ -10,8 +10,9 @@ PASSWORD = "correct horse battery"
 
 
 @pytest.fixture
-def app():
+def app(tmp_path):
     app = create_app("testing")
+    app.config["UPLOAD_FOLDER"] = str(tmp_path / "uploads")
 
     # The fixture keeps one app context open, so Flask-Login's per-request user
     # cache would leak between requests. Clear it so each request loads the user
