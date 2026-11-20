@@ -40,6 +40,13 @@ class Status:
     WITHDRAWN = "withdrawn"
     ALL = (SUBMITTED, IN_PROGRESS, AWAITING_STUDENT, RESOLVED, WITHDRAWN)
     OPEN = (SUBMITTED, IN_PROGRESS, AWAITING_STUDENT)
+    LABELS = {
+        SUBMITTED: "Submitted",
+        IN_PROGRESS: "In progress",
+        AWAITING_STUDENT: "Awaiting student",
+        RESOLVED: "Resolved",
+        WITHDRAWN: "Withdrawn",
+    }
 
 
 CATEGORIES = ("Academic", "Finance", "IT & Facilities", "Administration", "Welfare", "Other")
@@ -121,6 +128,14 @@ class Complaint(db.Model):
         "Message", backref="complaint", order_by="Message.created_at", cascade="all, delete-orphan"
     )
     attachments = db.relationship("Attachment", backref="complaint", cascade="all, delete-orphan")
+
+    @property
+    def is_open(self) -> bool:
+        return self.status in Status.OPEN
+
+    @property
+    def status_label(self) -> str:
+        return Status.LABELS.get(self.status, self.status)
 
 
 class Message(db.Model):

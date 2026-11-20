@@ -10,7 +10,14 @@ from flask_wtf.csrf import CSRFError
 from config import get_config
 
 from .extensions import csrf, db, limiter, login_manager
-from .models import Role, User, utcnow
+from .models import Role, Status, User, utcnow
+
+
+_SEED_WORDS = (
+    "amber", "basil", "cedar", "delta", "ember", "fable", "grove", "harbor", "indigo", "jasper",
+    "kettle", "lantern", "meadow", "nectar", "orchid", "pebble", "quartz", "river", "saffron", "timber",
+    "umbra", "velvet", "willow", "yonder", "zephyr", "anchor", "breeze", "copper", "dapple", "falcon",
+)
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -33,9 +40,11 @@ def create_app(config_name: str | None = None) -> Flask:
     login_manager.session_protection = "basic"
 
     from .auth.routes import bp as auth_bp
+    from .complaints.routes import bp as complaints_bp
     from .main.routes import bp as main_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(complaints_bp)
     app.register_blueprint(main_bp)
 
     _register_session_rules(app)
@@ -44,6 +53,9 @@ def create_app(config_name: str | None = None) -> Flask:
     _register_cli(app)
 
     app.jinja_env.globals["Role"] = Role
+    app.jinja_env.globals["Status"] = Status
+    app.jinja_env.filters["dt"] = lambda value: value.strftime("%d %b %Y, %H:%M") if value else "—"
+    app.jinja_env.filters["day"] = lambda value: value.strftime("%d %b %Y") if value else "—"
     return app
 
 
@@ -131,6 +143,39 @@ def _register_cli(app: Flask) -> None:
         """Create the database tables."""
         db.create_all()
         click.echo("Database ready.")
+
+    @app.cli.command("seed-demo")
+    def seed_demo():
+        """Create demo accounts for local testing. Never available in production."""
+        import secrets
+
+        if app.config["SESSION_COOKIE_SECURE"]:
+            raise click.ClickException("Demo data cannot be created in production.")
+        db.create_all()
+        accounts = [
+            (Role.STUDENT, "tariro.moyo@example.com", "Tariro Moyo", "CU-2024-01234", None),
+            (Role.STUDENT, "peter.mwale@example.com", "Peter Mwale", "CU-2024-05678", None),
+            (Role.STAFF, "james.banda@example.com", "James Banda", None, "IT Services"),
+            (Role.STAFF, "ruth.nkomo@example.com", "Ruth Nkomo", None, "Academic Registry"),
+            (Role.ADMIN, "grace.mulenga@example.com", "Grace Mulenga", None, None),
+        ]
+        lines = ["Voicebox demo accounts (local testing only - do not commit)", ""]
+        for role, email, name, student_id, department in accounts:
+            if db.session.scalar(db.select(User).filter_by(email=email)):
+                continue
+            # A random passphrase per account: no default password ever exists.
+            password = "-".join(secrets.choice(_SEED_WORDS) for _ in range(4))
+            db.session.add(User(email=email, full_name=name, role=role, student_id=student_id,
+                                department=department, password_hash=hash_password(password)))
+            lines.append(f"{role:<8} {email:<28} {password}")
+        if len(lines) == 2:
+            click.echo("Demo accounts already exist.")
+            return
+        db.session.commit()
+        path = Path(app.instance_path) / "demo-accounts.txt"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        audit("user.created", detail=f"{len(lines) - 2} demo accounts via cli", actor="cli")
+        click.echo(f"Demo accounts created. Passwords are in {path}")
 
     @app.cli.command("create-user")
     @click.option("--role", type=click.Choice(Role.ALL), required=True)
