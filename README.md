@@ -7,8 +7,8 @@
 Every voice heard, every case tracked, every record protected.
 
 ![Status](https://img.shields.io/badge/status-in%20development-0071e3)
-![Day](https://img.shields.io/badge/build-day%202%20of%204-1d1d1f)
-![Tests](https://img.shields.io/badge/tests-24%20passing-34c759)
+![Day](https://img.shields.io/badge/build-day%203%20of%204-1d1d1f)
+![Tests](https://img.shields.io/badge/tests-53%20passing-34c759)
 ![Stack](https://img.shields.io/badge/stack-Flask%20%C2%B7%20SQLAlchemy-34c759)
 ![Security](https://img.shields.io/badge/focus-OWASP%20Top%2010-ff9f0a)
 
@@ -84,6 +84,12 @@ Open <http://localhost:5000>. Students create their own accounts on the sign-up 
 flask --app wsgi create-user --role admin --email admin@example.com --name "Grace Mulenga"
 ```
 
+To try all three roles locally, create demo accounts. Each one gets a random passphrase, written to `instance/demo-accounts.txt` (never committed). This command refuses to run in production:
+
+```bash
+flask --app wsgi seed-demo
+```
+
 Run the tests with:
 
 ```bash
@@ -105,7 +111,11 @@ python -m pytest
 | Security headers | Content-Security-Policy with no inline script or style, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `no-store` caching, HSTS in production |
 | Audit log | Sign-ins, failures, lockouts, registrations, password changes and access denials, with user, IP and outcome; entries cannot be updated or deleted through the ORM; passwords are never logged |
 | Configuration | Secrets only from environment variables; the app refuses to start without `SECRET_KEY`; separate development, production and testing settings |
-| Interface | Sign-in, sign-up, role-aware home, security page, admin user list and error pages, responsive from phone to desktop |
+| Complaints | Students submit, reply, withdraw and reopen; staff reply, add internal notes and change status; the administrator assigns and reassigns; each case has a conversation and a timeline |
+| Object-level access control | A student sees only their own complaints and staff only the cases assigned to them. Anything else returns 404, identical to a complaint that does not exist, and is written to the audit log |
+| File uploads | Extension allow-list (PDF, PNG, JPG), content signature check, 5 MB limit, random stored name, stored outside the web root, downloads go through an authorised route and are always sent as attachments with a sandbox policy |
+| Audit log viewer | Administrator-only page with filters, daily counters and highlighted failures |
+| Interface | Sign-in, sign-up, role-aware lists, new complaint, complaint detail, security page, admin user list, audit log and error pages, responsive from phone to desktop |
 
 ## Technology
 
@@ -137,8 +147,8 @@ python -m pytest
 | --- | --- | --- | --- |
 | 1 | 17 Nov 2026 | Repository, README, design language and UI mockups | ✅ Done |
 | 2 | 18 Nov 2026 | Project skeleton, database models, registration and login, sessions, base layout | ✅ Done |
-| 3 | 19 Nov 2026 | Complaint workflow for all three roles, file uploads, access control, audit log viewer | ⏳ Next |
-| 4 | 20 Nov 2026 | Threat model (DFD + STRIDE), Bandit/Semgrep, OWASP ZAP, manual attack tests, reflection | ◻️ Planned |
+| 3 | 20 Nov 2026 | Complaint workflow for all three roles, file uploads, access control, audit log viewer | ✅ Done |
+| 4 | Next session | Threat model (DFD + STRIDE), Bandit/Semgrep, OWASP ZAP, manual attack tests, reflection | ⏳ Next |
 
 ## Build log
 
@@ -161,6 +171,16 @@ python -m pytest
 - Turned the mockups into the real base layout, stylesheet and pages, with no inline styles or scripts.
 - Wrote 24 automated tests covering authentication, sessions, access control, CSRF, output escaping and the audit log. All pass.
 
+### Day 3 — 20 November 2026
+
+- Built the complaint workflow for all three roles: submit, assign, reply, change status, withdraw and reopen.
+- Added object-level access control: one `load_complaint` function guards every complaint route, and a single `permissions` table decides each action.
+- Added secure evidence uploads and an authorised download route.
+- Added staff-only internal notes that students can never see.
+- Added the administrator's audit log viewer with filters and counters.
+- Added a `seed-demo` command that creates demo accounts with random passphrases.
+- Wrote 29 more tests that replay the manual attacks: opening another student's complaint (IDOR), privilege escalation between roles, mass assignment, SQL injection, stored XSS, and malicious uploads (wrong type, fake content, oversized, path traversal). All 53 tests pass.
+
 ## Repository layout
 
 ```
@@ -169,8 +189,10 @@ Voicebox/
 │   ├── __init__.py               Application factory, headers, error pages, CLI
 │   ├── models.py                 Database models
 │   ├── security.py               Hashing, password policy, audit log, access control
+│   ├── uploads.py                Upload validation and storage
 │   ├── auth/                     Registration, sign-in, sign-out, password change
-│   ├── main/                     Role-aware home and admin pages
+│   ├── complaints/               Complaint workflow, permissions, downloads
+│   ├── main/                     Role-aware lists, user list, audit log viewer
 │   ├── templates/                Jinja2 templates
 │   └── static/                   Stylesheet and icon
 ├── tests/                        Automated security tests
