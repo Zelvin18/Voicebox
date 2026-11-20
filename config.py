@@ -30,7 +30,10 @@ class Config:
     SESSION_ABSOLUTE_LIFETIME = timedelta(hours=8)      # forced re-login
 
     WTF_CSRF_TIME_LIMIT = 3600
-    MAX_CONTENT_LENGTH = 6 * 1024 * 1024
+    # Uploads live outside the web root and are only served through an authorised route.
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", str(BASE_DIR / "instance" / "uploads"))
+    MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 6 * 1024 * 1024  # hard cap on any request body
 
     # Account lockout
     MAX_FAILED_LOGINS = 5
