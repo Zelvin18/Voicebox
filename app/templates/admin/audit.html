@@ -1,0 +1,54 @@
+{% extends "layouts/app.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<header class="top">
+  <div>
+    <h1>Audit log</h1>
+    <p class="muted">Read-only. Entries cannot be edited or deleted from the application. Times are in UTC.</p>
+  </div>
+</header>
+<section class="stats" aria-label="Summary">
+  {% for label, value, hint, colour in stats %}
+  <div class="card stat">
+    <span class="stat-label"><i class="dot dot-{{ colour }}"></i>{{ label }}</span>
+    <b>{{ value }}</b>
+    <small>{{ hint }}</small>
+  </div>
+  {% endfor %}
+</section>
+<nav class="seg" aria-label="Filter">
+  {% for key, (label, _) in groups.items() %}
+  <a href="{{ url_for('main.admin_audit', group=key) }}" class="{{ 'on' if key == group }}"
+     {% if key == group %}aria-current="true"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+<section class="card table-wrap">
+  <table class="tbl tbl-audit">
+    <thead>
+      <tr><th>Time</th><th>User</th><th>Event</th><th>Target</th><th>Detail</th><th>IP address</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      {% for e in rows %}
+      <tr class="{{ 'flag' if e.outcome != 'success' }}">
+        <td class="ref">{{ e.created_at.strftime("%d %b %H:%M:%S") }}</td>
+        <td>{{ e.actor or "—" }}{% if e.role %} <span class="faint">· {{ Role.LABELS.get(e.role, e.role) }}</span>{% endif %}</td>
+        <td class="ref">{{ e.event }}</td>
+        <td class="ref">{{ e.target or "—" }}</td>
+        <td class="wrap muted">{{ e.detail or "" }}</td>
+        <td class="ref">{{ e.ip or "—" }}</td>
+        <td><span class="pill pill-{{ 'green' if e.outcome == 'success' else 'red' if e.outcome == 'denied' else 'in_progress' }}">{{ e.outcome|capitalize }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No events in this view.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% if page > 1 or has_next %}
+<nav class="pager" aria-label="Pages">
+  {% if page > 1 %}<a class="btn btn-quiet" href="{{ url_for('main.admin_audit', group=group, page=page - 1) }}">Newer</a>{% endif %}
+  <span class="muted">Page {{ page }}</span>
+  {% if has_next %}<a class="btn btn-quiet" href="{{ url_for('main.admin_audit', group=group, page=page + 1) }}">Older</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}
